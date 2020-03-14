@@ -11,7 +11,7 @@ def get_paths(path):
     return [os.path.join(path, file) for file in os.listdir(path)]
 
 
-def save_faces(image_path):
+def save_faces(image_path, out):
     global sum_images
 
     print(image_path)
@@ -26,13 +26,9 @@ def save_faces(image_path):
         gray,
         scaleFactor=1.3,
         minNeighbors=3,
-        minSize=(30, 30)
+        minSize=(80, 80)
     )
     print(f'[INFO] Found {len(faces)} Faces for {image_path} image!')
-    # for (x, y, w, h) in faces:
-    #     cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    # status = cv2.imwrite('faces_detected.jpg', image)
-    # print('[INFO] Image faces_detected.jpg written to filesystem: ', status)
 
     for ind, face in enumerate(faces):
         x, y, w, h = [v for v in face]
@@ -51,10 +47,10 @@ def save_faces(image_path):
             y1 += y_inc
 
         face_image = image[y0:(y1+y_inc), x0:(x1+x_inc)]
-        face_image_name = f'face_{sum_images}_{ind}.1.jpg'
+        face_image_name = f'face_{sum_images}.jpg'
 
-        resized = cv2.resize(face_image, (75, 75), interpolation=cv2.INTER_AREA)
-        status = cv2.imwrite(f'faces/{face_image_name}', resized)
+        resized = cv2.resize(face_image, (150, 150), interpolation=cv2.INTER_AREA)
+        status = cv2.imwrite(f'{out}/{face_image_name}', resized)
 
         print(f'[INFO] Image {face_image_name} written to filesystem: ', status)
 
@@ -64,5 +60,13 @@ def save_faces(image_path):
 
 if __name__ == '__main__':
 
-    for image_path in get_paths(sys.argv[1]):
-        save_faces(image_path)
+    if len(sys.argv) != 3:
+        print('Bad input parameters: provide paths to input and output folders')
+        exit(-1)
+
+    input_path = sys.argv[1]
+    output_path = sys.argv[2]
+    print(f'[INFO] Searching for faces in {input_path}')
+
+    for file_path in get_paths(input_path):
+        save_faces(file_path, output_path)

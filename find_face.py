@@ -8,7 +8,7 @@ sum_images = 0
 
 
 def get_paths(path):
-    return [os.path.join(path, file) for file in os.listdir(path)]
+    return sorted(os.path.join(path, file) for file in os.listdir(path))
 
 
 def save_faces(image_path, out):
@@ -26,7 +26,7 @@ def save_faces(image_path, out):
         gray,
         scaleFactor=1.3,
         minNeighbors=3,
-        minSize=(80, 80)
+        minSize=(40, 40)
     )
     print(f'[INFO] Found {len(faces)} Faces for {image_path} image!')
 
@@ -69,4 +69,7 @@ if __name__ == '__main__':
     print(f'[INFO] Searching for faces in {input_path}')
 
     for file_path in get_paths(input_path):
-        save_faces(file_path, output_path)
+        try:
+            save_faces(file_path, output_path)
+        except Exception as e:
+            print(e)

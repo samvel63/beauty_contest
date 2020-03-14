@@ -11,37 +11,48 @@ import sys
 from time import time
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 
 
-PATH = '/home/samvel/projects/beauty_contest/BeautyClassification'
+PATH = '/home/samvel/projects/beauty_contest/data'
 
 train_dir = os.path.join(PATH, 'data_train')
 validation_dir = os.path.join(PATH, 'data_validate')
 
 
-train_ginger_dir = os.path.join(train_dir, 'ginger')  
-train_asian_dir  = os.path.join(train_dir, 'asian')   
+train_ginger_dir = os.path.join(train_dir, 'ginger')
+train_asian_dir = os.path.join(train_dir, 'asian')
+train_mulatto_dir = os.path.join(train_dir, 'mulatto')
+# train_brunette_dir = os.path.join(train_dir, 'brunette')
 
-validation_ginger_dir = os.path.join(validation_dir, 'ginger')  
-validation_asian_dir  = os.path.join(validation_dir, 'asian')  
+validation_ginger_dir = os.path.join(validation_dir, 'ginger')
+validation_asian_dir = os.path.join(validation_dir, 'asian')
+validation_mulatto_dir = os.path.join(validation_dir, 'mulatto')
+# validation_brunette_dir = os.path.join(validation_dir, 'brunette')
 
 models_dir = os.path.join(PATH, 'models')
 
 num_ginger_train = len(os.listdir(train_ginger_dir))
-num_asian_train  = len(os.listdir(train_asian_dir))
+num_asian_train = len(os.listdir(train_asian_dir))
+num_mulatto_train = len(os.listdir(train_mulatto_dir))
+# num_brunette_train = len(os.listdir(train_brunette_dir))
 
 num_ginger_validation = len(os.listdir(validation_ginger_dir))
-num_asian_validation  = len(os.listdir(validation_asian_dir))
+num_asian_validation = len(os.listdir(validation_asian_dir))
+num_mulatto_validation = len(os.listdir(validation_mulatto_dir))
+# num_brunette_validation = len(os.listdir(validation_brunette_dir))
 
-total_train      = num_ginger_train + num_asian_train
-total_validation = num_ginger_validation + num_asian_validation
+total_train = num_ginger_train + num_asian_train + num_mulatto_train
+total_validation = num_ginger_validation + num_asian_validation + num_mulatto_validation
 
 print('total training GINGER images:', num_ginger_train)
 print('total training ASIAN images:', num_asian_train)
+print('total training MULATTO images:', num_mulatto_train)
+# print('total training BRUNETTE images:', num_brunette_train)
 
 print('total validation GINGER images:', num_ginger_validation)
 print('total validation ASIAN images:', num_asian_validation)
+print('total validation MULATTO images:', num_mulatto_validation)
+# print('total validation BRUNETTE images:', num_brunette_validation)
 print("--")
 print("Total training images:", total_train)
 print("Total validation images:", total_validation)
@@ -94,7 +105,7 @@ plot_images(sample_training_images[:5])
 print(classers[:5])
 
 model = Sequential([
-    Conv2D(16, 3, padding='same', activation='relu', 
+    Conv2D(16, 3, padding='same', activation='relu',
            input_shape=(IMG_HEIGHT, IMG_WIDTH ,3)),
     MaxPooling2D(),
     Dropout(0.2),
@@ -107,18 +118,27 @@ model = Sequential([
     Dense(512, activation='relu'),
     Dense(1)
 ])
-
-
 model.compile(optimizer='adam',
               loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
               metrics=['accuracy'])
 model.summary()
 
+# model = Sequential([
+#     Flatten(input_shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+#     Dense(128, activation='relu'),
+#     Dense(2, activation='softmax')
+# ])
+# model.compile(optimizer='adam',
+#               loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+#               metrics=['accuracy'])
+# model.summary()
+
+
 if '-l' in sys.argv:
     path_index = sys.argv.index('-l') + 1
     model.load_weights(sys.argv[path_index])
 else:
-    history = model.fit_generator(
+    history = model.fit(
         train_data_gen,
         steps_per_epoch=total_train // batch_size,
         epochs=epochs,
@@ -154,9 +174,7 @@ if '-s' in sys.argv:
     model_dir = os.path.join(models_dir, f'model_{int(time())}.ckpt')
     model.save_weights(model_dir)
 
-imgs_path = ['data_predict/unknow/1.jpg', 'images/pitt.jpg', 'images/3_0_1_1.jpg',
-             'images/face_0_1.1.jpg', 'images/face_1_1.1.jpg', 'images/face_2_0.1.jpg',
-             'images/face_4_1.1.jpg', 'images/face_5_0.1.jpg']
+imgs_path = ['data_predict/unknow/1.jpg', 'data_predict/unknow/2.jpg']
 imgs = []
 
 for img_path in imgs_path:

@@ -1,13 +1,28 @@
-import sys
+import argparse
 import os
 
 
-dir_path = sys.argv[1]
-photos_list = os.listdir(dir_path)
+def parse_args():
+    parser = argparse.ArgumentParser()
 
-k = 0
-for photo_name in photos_list:
-    k += 1
-    before = dir_path + photo_name
-    after = dir_path + "mulatto."+str(k) + ".jpg"
-    os.rename(before, after)
+    parser.add_argument('--name', '-n', help='Name of photos `{name}.1.jpg ... {name}.N.jpg`')
+    parser.add_argument('--path', '-p', help='Path of photos')
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    photos_list = os.listdir(args.path)
+    for ind, photo_name in enumerate(photos_list):
+        new_name = f'{args.name}.{ind+1}.jpg'
+
+        before = os.path.join(args.path, photo_name)
+        after = os.path.join(args.path, new_name)
+
+        os.rename(before, after)
+
+
+if __name__ == '__main__':
+    main()

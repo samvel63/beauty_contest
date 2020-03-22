@@ -5,8 +5,8 @@ import os
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--name', '-n', help='Name of photos `{name}.1.jpg ... {name}.N.jpg`')
-    parser.add_argument('--path', '-p', help='Path of photos')
+    parser.add_argument('--name', '-n', help='Name of photos `{name}.1.jpg ... {name}.N.jpg`', required=True)
+    parser.add_argument('--path', '-p', help='Path of photos', required=True)
 
     return parser.parse_args()
 

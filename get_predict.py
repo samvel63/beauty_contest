@@ -1,19 +1,54 @@
-# imgs_path = ['data_predict/unknow/1.jpg',
-#              'data_predict/unknow/2.jpg',
-#              'data_predict/unknow/3.jpg',
-#              'data_predict/faces/face_0.jpg',
-#              'data_predict/faces/face_1.jpg']
-# imgs = []
-#
-# for img_path in imgs_path:
-#     img_raw = tf.io.read_file(os.path.join(PATH, img_path))
-#
-#     img_tensor = tf.image.decode_image(img_raw)
-#     img_tensor = tf.image.resize(img_tensor, [IMG_HEIGHT, IMG_WIDTH])
-#     img_tensor /= 255.0
-#
-#     img = np.reshape(img_tensor, [1, IMG_HEIGHT, IMG_WIDTH, 3])
-#     imgs.append(img_tensor)
-#
-#     classes = model.predict_classes(img)
-#     print(img_path, classes[0])
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import os
+import argparse
+
+import numpy as np
+import tensorflow as tf
+
+
+CLASSES = ['asian', 'ginger', 'mulatto']
+
+IMG_HEIGHT = 150
+IMG_WIDTH = 150
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--model-path', '-mp', help='Path of model `{model_name}.h5`', required=True)
+    parser.add_argument('--images-path', '-p', help='Path of photos', required=True)
+
+    return parser.parse_args()
+
+
+def get_paths(path):
+    return sorted(os.path.join(path, file) for file in os.listdir(path))
+
+
+def predict_image(model, image_path):
+    image = tf.io.read_file(image_path)
+
+    image_tensor = tf.image.decode_image(image)
+    image_tensor = tf.image.resize(image_tensor, [IMG_HEIGHT, IMG_WIDTH])
+    image_tensor /= 255.0
+
+    image_tensor = np.reshape(image_tensor, [1, IMG_HEIGHT, IMG_WIDTH, 3])
+
+    classes = model.predict_classes(image_tensor)
+    print(image_path, CLASSES[classes[0]], classes[0])
+
+
+def main():
+    args = parse_args()
+
+    model = tf.keras.models.load_model(args.model_path)
+    model.summary()
+
+    images_path = get_paths(args.images_path)
+    for image_path in images_path:
+        predict_image(model, image_path)
+
+
+if __name__ == '__main__':
+    main()

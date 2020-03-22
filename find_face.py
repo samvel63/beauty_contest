@@ -50,10 +50,10 @@ def save_faces(image_path, output_path):
         face_image_path = os.path.join(output_path, face_image_name)
         resized = cv2.resize(face_image, (150, 150), interpolation=cv2.INTER_AREA)
 
-        cv2.imwrite(face_image_path, resized)
+        status = cv2.imwrite(face_image_path, resized)
         sum_images += 1
 
-        logger.warning(f'{image_name} => {face_image_name} have written to {output_path}')
+        logger.warning(f'{image_name} => {face_image_name} have written to {output_path} with status={status}')
 
 
 def main():

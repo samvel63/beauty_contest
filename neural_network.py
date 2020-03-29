@@ -119,7 +119,7 @@ model = Sequential([
     Flatten(),
     Dense(512, activation='relu'),
     Dropout(0.25),
-    Dense(3, activation='softmax')
+    Dense(5, activation='softmax')
 ])
 
 

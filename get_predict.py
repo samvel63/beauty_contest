@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 
-CLASSES = ['asian', 'ginger', 'mulatto']
+CLASSES = ['asian', 'brunette', 'dreadlock', 'ginger', 'mulatto']
 
 IMG_HEIGHT = 150
 IMG_WIDTH = 150

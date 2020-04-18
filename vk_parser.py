@@ -1,31 +1,48 @@
 import os
 import sys
 import logging
+import argparse
 import requests
 
 import vk_api as vk
+from vk_api.exceptions import ApiError
 
-
-app_name = os.path.splitext(os.path.basename(__file__))[0]
 root_path = os.path.dirname(os.path.abspath(__file__))
 accounts_path = os.path.join(root_path, 'ACCOUNTS')
 success_path = os.path.join(root_path, 'SUCCESS')
 failed_path = os.path.join(root_path, 'FAILED')
 
 VK_URL = 'https://vk.com'
-LOGIN = '+79958812067'
-PASSWORD = 'peshuesos228'
-
-GIRLS_PER_REQ = 5  # MAX 1000
+GIRLS_PER_REQ = 1000  # MAX 1000
 PHOTOS_PER_REQ = 200  # MAX 200
-MAX_PHOTOS = 50
-CLASSES = ['asian', 'brunette', 'dreadlock', 'ginger', 'mulatto']
+GIRL_TYPES = ['asian', 'brunette', 'dreadlock', 'ginger', 'mulatto']
 
 
-def get_vk_api():
-    logger.info('Getting VK API')
+def parse_args():
+    parser = argparse.ArgumentParser()
 
-    vk_session = vk.VkApi(LOGIN, PASSWORD)
+    parser.add_argument('--max-girls', '-mg', help='Number of girls per one execute of the program', type=int, required=True)
+    parser.add_argument('--max-photos', '-mp', help='Number of photos per one girl', type=int, required=True)
+
+    parser.add_argument('--login', '-l', help='Login of the VK page', required=True)
+    parser.add_argument('--password', '-p', help='Password of the VK page', required=True)
+
+    return parser.parse_args()
+
+
+def get_logger(name):
+    logger = logging.getLogger(name)
+    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(name)s: %(message)s', datefmt='%y/%m/%d %H:%M:%S')
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+    logger.setLevel(logging.INFO)
+
+    return logger
+
+
+def get_vk_api(login, password):
+    vk_session = vk.VkApi(login, password)
     vk_session.auth()
 
     return vk_session.get_api()
@@ -39,15 +56,15 @@ def get_girls(vk_api, count, offset):
     return vk_api.users.search(sort=0, offset=offset, count=count, city=1, sex=1, age_from=17, age_to=40, has_photo=1)
 
 
-def exists_girl(girl_id):
+def exists_girl(logger, girl_id):
     is_exists = False
 
     paths_to_check = list()
+    paths_to_check.append(os.path.join(accounts_path, girl_id))  # check in accounts path
+    paths_to_check.append(os.path.join(failed_path, girl_id))  # check in failed path
 
-    paths_to_check.append(os.path.join(accounts_path, girl_id))
-    paths_to_check.append(os.path.join(failed_path, girl_id))
-
-    for girl_type in CLASSES:
+    # check in success path
+    for girl_type in GIRL_TYPES:
         paths_to_check.append(os.path.join(success_path, girl_type, girl_id))
 
     for path in paths_to_check:
@@ -65,35 +82,41 @@ def get_photos(vk_api, girl_id, count, offset):
     return vk_api.photos.getAll(owner_id=girl_id, count=count, offset=offset)
 
 
-def download_girl_photos(vk_api, girl_id, max_photos_count):
-    photos_count = 0
+def download_girl_photos(vk_api, logger, girl_id, max_photos_count):
+    photos_downloaded = 0
 
     girl_url = f'{VK_URL}/id{girl_id}'
-    logger.info(f'Searching photos on the page {girl_url}')
+    logger.info(f'Getting photos from page {girl_url}')
 
-    photos = get_photos(vk_api, girl_id, PHOTOS_PER_REQ, 0)
-    logger.info(f'Found {photos["count"]} photos on the page {girl_url}')
+    try:
+        photos = get_photos(vk_api, girl_id, PHOTOS_PER_REQ, 0)
+    except ApiError as e:
+        logger.error(f'Failed to get photos from page {girl_url} with message: {e}')
+        return 0
 
-    for offset in range(0, photos['count'], PHOTOS_PER_REQ):
+    photos_count = photos.get('count')
+    logger.info(f'Found {photos_count} photos on the page {girl_url}')
+
+    for offset in range(0, photos_count, PHOTOS_PER_REQ):
         logger.info(f'Get photos from page {girl_url} in range [{offset}, {offset+PHOTOS_PER_REQ})')
         photos = get_photos(vk_api, girl_id, PHOTOS_PER_REQ, offset)
 
         for photo in photos['items']:
             for photo_size in photo['sizes']:
                 if photo_size['type'] == 'z':
-                    photo_name = f'{photos_count}.jpg'
+                    photo_name = f'{photos_downloaded}.jpg'
                     photo_path = os.path.join(accounts_path, girl_id, photo_name)
 
-                    download_photo(photo_size['url'], photo_path)
-                    photos_count += 1
+                    download_photo(logger, photo_size['url'], photo_path)
+                    photos_downloaded += 1
 
-                    if photos_count >= max_photos_count:
-                        return photos_count
+                    if photos_downloaded == max_photos_count:
+                        return photos_downloaded
 
-    return photos_count
+    return photos_downloaded
 
 
-def download_photo(photo_url, photo_path):
+def download_photo(logger, photo_url, photo_path):
     logger.info(f'Downloading photo {photo_url} to {photo_path}')
     with open(photo_path, 'wb') as photo:
         response = requests.get(photo_url, stream=True)
@@ -107,38 +130,48 @@ def download_photo(photo_url, photo_path):
             photo.write(block)
 
 
-def main():
-    vk_api = get_vk_api()
-
+def load_girls(vk_api, logger, max_girls_count, max_photos_count):
+    girls_loaded = 0
     if not os.path.exists(accounts_path):
         os.makedirs(accounts_path)
 
     girls = get_girls(vk_api, GIRLS_PER_REQ, 0)
-    logger.info(f'Founded {girls["count"]} girls')
+    girls_count = girls.get('count')
+    logger.info(f'Founded {girls_count} girls')
 
-    # for offset in range(0, girls["count"], GIRLS_PER_REQ):
-    for offset in range(0, 1, GIRLS_PER_REQ):
+    for offset in range(0, girls_count, GIRLS_PER_REQ):
         logger.info(f'Get girls in range [{offset}, {offset+GIRLS_PER_REQ})')
         girls = get_girls(vk_api, GIRLS_PER_REQ, offset)
 
         for girl in girls['items']:
             girl_id = str(girl['id'])
 
-            if not exists_girl(girl_id):
-                girl_url = f'{VK_URL}/id{girl_id}'
+            if not exists_girl(logger, girl_id):
                 girls_account_path = os.path.join(accounts_path, girl_id)
-
                 os.makedirs(girls_account_path, exist_ok=True)
-                photos_count = download_girl_photos(vk_api, girl_id, MAX_PHOTOS)
-                logger.info(f'Downloaded {photos_count} photos from page {girl_url} to {girls_account_path}')
+
+                photos_count = download_girl_photos(vk_api, logger, girl_id, max_photos_count)
+                logger.warning(f'Downloaded {photos_count} photos for the girl {girl_id} to {girls_account_path}')
+
+                girls_loaded += 1
+                if girls_loaded == max_girls_count:
+                    return girls_loaded
+
+    return girls_loaded
 
 
-if __name__ == '__main__': 
-    logger = logging.getLogger(app_name)
-    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(name)s: %(message)s', datefmt='%y/%m/%d %H:%M:%S')
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-    logger.setLevel(logging.INFO)
+def main():
+    args = parse_args()
 
+    app_name = os.path.splitext(os.path.basename(__file__))[0]
+    logger = get_logger(app_name)
+
+    logger.info(f'Getting VK API for login={args.login}, password={args.password}')
+    vk_api = get_vk_api(args.login, args.password)
+
+    girls_count = load_girls(vk_api, logger, args.max_girls, args.max_photos)
+    logger.info(f'Loaded {girls_count} girls')
+
+
+if __name__ == '__main__':
     main()

@@ -7,6 +7,7 @@ import requests
 import vk_api as vk
 from vk_api.exceptions import ApiError
 
+
 root_path = os.path.dirname(os.path.abspath(__file__))
 accounts_path = os.path.join(root_path, 'ACCOUNTS')
 success_path = os.path.join(root_path, 'SUCCESS')

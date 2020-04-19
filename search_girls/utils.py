@@ -4,7 +4,10 @@ import logging
 
 import cv2
 
-from search_girls import configs
+try:
+    from search_girls import configs
+except ModuleNotFoundError as e:
+    import configs
 
 
 def get_logger(name):

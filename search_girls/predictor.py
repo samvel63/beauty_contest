@@ -5,7 +5,11 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from search_girls import utils, configs
+try:
+    from search_girls import utils, configs
+except ModuleNotFoundError as e:
+    import utils
+    import configs
 
 
 def parse_args():

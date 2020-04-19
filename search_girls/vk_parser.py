@@ -6,8 +6,12 @@ import requests
 import vk_api as vk
 from vk_api.exceptions import ApiError
 
-from search_girls import configs
-from search_girls.utils import get_logger
+try:
+    from search_girls import configs
+    from search_girls.utils import get_logger
+except ModuleNotFoundError as e:
+    import configs
+    from utils import get_logger
 
 
 def parse_args():

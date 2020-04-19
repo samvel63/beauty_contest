@@ -6,18 +6,8 @@ import requests
 import vk_api as vk
 from vk_api.exceptions import ApiError
 
+from search_girls import configs
 from search_girls.utils import get_logger
-
-
-root_path = os.path.dirname(os.path.abspath(__file__))
-accounts_path = os.path.join(root_path, 'ACCOUNTS')
-success_path = os.path.join(root_path, 'SUCCESS')
-failed_path = os.path.join(root_path, 'FAILED')
-
-VK_URL = 'https://vk.com'
-GIRLS_PER_REQ = 1000  # MAX 1000
-PHOTOS_PER_REQ = 200  # MAX 200
-GIRL_TYPES = ['asian', 'brunette', 'dreadlock', 'ginger', 'mulatto']
 
 
 def parse_args():
@@ -52,12 +42,12 @@ def exists_girl(logger, girl_id):
     is_exists = False
 
     paths_to_check = list()
-    paths_to_check.append(os.path.join(accounts_path, girl_id))  # check in accounts path
-    paths_to_check.append(os.path.join(failed_path, girl_id))  # check in failed path
+    paths_to_check.append(os.path.join(configs.ACCOUNTS_PATH, girl_id))  # check in accounts path
+    paths_to_check.append(os.path.join(configs.FAILED_PATH, girl_id))  # check in failed path
 
     # check in success path
-    for girl_type in GIRL_TYPES:
-        paths_to_check.append(os.path.join(success_path, girl_type, girl_id))
+    for girl_class in configs.CATEGORIZER_CLASSES:
+        paths_to_check.append(os.path.join(configs.SUCCESS_PATH, girl_class, girl_id))
 
     for path in paths_to_check:
         if os.path.exists(path):
@@ -77,11 +67,11 @@ def get_photos(vk_api, girl_id, count, offset):
 def download_girl_photos(vk_api, logger, girl_id, max_photos_count):
     photos_downloaded = 0
 
-    girl_url = f'{VK_URL}/id{girl_id}'
+    girl_url = f'{configs.VK_URL}/id{girl_id}'
     logger.info(f'Getting photos from page {girl_url}')
 
     try:
-        photos = get_photos(vk_api, girl_id, PHOTOS_PER_REQ, 0)
+        photos = get_photos(vk_api, girl_id, configs.PHOTOS_PER_REQ, 0)
     except ApiError as e:
         logger.error(f'Failed to get photos from page {girl_url} with message: {e}')
         return 0
@@ -89,15 +79,15 @@ def download_girl_photos(vk_api, logger, girl_id, max_photos_count):
     photos_count = photos.get('count')
     logger.info(f'Found {photos_count} photos on the page {girl_url}')
 
-    for offset in range(0, photos_count, PHOTOS_PER_REQ):
-        logger.info(f'Get photos from page {girl_url} in range [{offset}, {offset+PHOTOS_PER_REQ})')
-        photos = get_photos(vk_api, girl_id, PHOTOS_PER_REQ, offset)
+    for offset in range(0, photos_count, configs.PHOTOS_PER_REQ):
+        logger.info(f'Get photos from page {girl_url} in range [{offset}, {offset+configs.PHOTOS_PER_REQ})')
+        photos = get_photos(vk_api, girl_id, configs.PHOTOS_PER_REQ, offset)
 
         for photo in photos['items']:
             for photo_size in photo['sizes']:
                 if photo_size['type'] == 'z':
                     photo_name = f'{photos_downloaded}.jpg'
-                    photo_path = os.path.join(accounts_path, girl_id, photo_name)
+                    photo_path = os.path.join(configs.ACCOUNTS_PATH, girl_id, photo_name)
 
                     download_photo(logger, photo_size['url'], photo_path)
                     photos_downloaded += 1
@@ -124,22 +114,21 @@ def download_photo(logger, photo_url, photo_path):
 
 def load_girls(vk_api, logger, max_girls_count, max_photos_count):
     girls_loaded = 0
-    if not os.path.exists(accounts_path):
-        os.makedirs(accounts_path)
+    os.makedirs(configs.ACCOUNTS_PATH, exist_ok=True)
 
-    girls = get_girls(vk_api, GIRLS_PER_REQ, 0)
+    girls = get_girls(vk_api, configs.GIRLS_PER_REQ, 0)
     girls_count = girls.get('count')
     logger.info(f'Founded {girls_count} girls')
 
-    for offset in range(0, girls_count, GIRLS_PER_REQ):
-        logger.info(f'Get girls in range [{offset}, {offset+GIRLS_PER_REQ})')
-        girls = get_girls(vk_api, GIRLS_PER_REQ, offset)
+    for offset in range(0, girls_count, configs.GIRLS_PER_REQ):
+        logger.info(f'Get girls in range [{offset}, {offset+configs.GIRLS_PER_REQ})')
+        girls = get_girls(vk_api, configs.GIRLS_PER_REQ, offset)
 
         for girl in girls['items']:
             girl_id = str(girl['id'])
 
             if not exists_girl(logger, girl_id):
-                girls_account_path = os.path.join(accounts_path, girl_id)
+                girls_account_path = os.path.join(configs.ACCOUNTS_PATH, girl_id)
                 os.makedirs(girls_account_path, exist_ok=True)
 
                 photos_count = download_girl_photos(vk_api, logger, girl_id, max_photos_count)

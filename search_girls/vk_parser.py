@@ -1,11 +1,12 @@
 import os
 import sys
-import logging
 import argparse
 import requests
 
 import vk_api as vk
 from vk_api.exceptions import ApiError
+
+from search_girls.utils import get_logger
 
 
 root_path = os.path.dirname(os.path.abspath(__file__))
@@ -22,24 +23,14 @@ GIRL_TYPES = ['asian', 'brunette', 'dreadlock', 'ginger', 'mulatto']
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--max-girls', '-mg', help='Number of girls per one execute of the program', type=int, required=True)
+    parser.add_argument('--max-girls', '-mg', help='Number of loaded girls per one execute of the program',
+                        type=int, required=True)
     parser.add_argument('--max-photos', '-mp', help='Number of photos per one girl', type=int, required=True)
 
     parser.add_argument('--login', '-l', help='Login of the VK page', required=True)
     parser.add_argument('--password', '-p', help='Password of the VK page', required=True)
 
     return parser.parse_args()
-
-
-def get_logger(name):
-    logger = logging.getLogger(name)
-    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(name)s: %(message)s', datefmt='%y/%m/%d %H:%M:%S')
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-    logger.setLevel(logging.INFO)
-
-    return logger
 
 
 def get_vk_api(login, password):

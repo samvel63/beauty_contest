@@ -85,7 +85,7 @@ def find_faces(account_path):
             minSize=(80, 80)
         )
         for face in faces:
-            found_faces.append(get_resized_face(face, image, height, width))
+            found_faces.append((get_resized_face(face, image, height, width), image_path))
     
     logger.info(f'Found {len(found_faces)} faces in account \'{os.path.basename(account_path)}\'')
     return found_faces
@@ -119,17 +119,19 @@ def main():
         predictions_statistics = [0] * len(categorizer_classes)
         
         for face in faces:
-            if binary_filter_classes[get_prediction(binary_filter, face)[0]] == 'LIT':
+            if binary_filter_classes[get_prediction(binary_filter, face[0])[0]] == 'LIT':
+                logger.warning(f'Face \'{face[1]} is lit \'')
                 lit_counter += 1
                 continue
             
-            predictions_statistics[get_prediction(categorizer, face)] += 1
+            predictions_statistics[get_prediction(categorizer, face[0])] += 1
 
         if lit_counter == len(faces):
             logger.info(f'Move account \'{os.path.basename(account_path)}\' to FAILED')
             # move_account(account_path, 'FAILED')
         else:
             intensified_prediction = predictions_statistics.index(max(predictions_statistics))
+            logger.info(predictions_statistics)
             logger.info(f'Account \'{os.path.basename(account_path)}\' belongs to \'{categorizer_classes[intensified_prediction]}\' class')
 
             #move_account(account_path, 'SUCCESS', intensified_prediction)

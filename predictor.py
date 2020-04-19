@@ -66,9 +66,9 @@ def find_faces(account_path):
 def get_prediction(model, image):
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image_tensor = tf.convert_to_tensor(image_rgb, dtype=tf.float32)
-    image_tensor = tf.image.resize(image_tensor, [IMG_HEIGHT, IMG_WIDTH])
+    image_tensor = tf.image.resize(image_tensor, [config.IMG_HEIGHT, config.IMG_WIDTH])
     image_tensor /= 255.0
-    image_tensor = np.reshape(image_tensor, [1, IMG_HEIGHT, IMG_WIDTH, 3])
+    image_tensor = np.reshape(image_tensor, [1, config.IMG_HEIGHT, config.IMG_WIDTH, 3])
     return model.predict_classes(image_tensor)[0]
 
 def move_account(account_path, prediction_status, prediction_class):
@@ -82,6 +82,19 @@ def move_account(account_path, prediction_status, prediction_class):
             shutil.move(account_path, category_path)
     except Exception as e:
         logger.error(f'Eror while moving account {e}')
+
+
+
+
+def write_statistics(account_path, statistics):
+    summary = sum(statistics)
+    statistics_percentage = map(lambda x : 100 * x / sum(statistics), statistics)
+
+    with open(os.path.join(account_path, 'INFO'), 'w+') as f:
+        for pair in zip(config.CATEGORIZER_CLASSES, statistics_percentage):
+            f.write(f'{pair[0].3f} - {pair[1]}%\n')
+
+
 
 def predict(binary_model_path, categorizer_model_path):
 
@@ -99,7 +112,7 @@ def predict(binary_model_path, categorizer_model_path):
         
         for face in faces:
             if config.BINARY_FILTER_CLASSES[get_prediction(binary_filter, face[0])[0]] == 'LIT':
-                logger.warning(f'Face \'{face[1]} is lit \'')
+                logger.warning(f'Face \'{face[1]}\' is lit')
                 lit_counter += 1
                 continue
             
@@ -111,6 +124,8 @@ def predict(binary_model_path, categorizer_model_path):
         else:
             intensified_prediction = predictions_statistics.index(max(predictions_statistics))
             logger.info(predictions_statistics)
+            write_statistics(account_path, predictions_statistics)
+
             logger.info(f'Account \'{os.path.basename(account_path)}\' belongs to \'{config.CATEGORIZER_CLASSES[intensified_prediction]}\' class')
             move_account(account_path, 'SUCCESS', intensified_prediction)
 

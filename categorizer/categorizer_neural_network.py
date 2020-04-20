@@ -161,6 +161,5 @@ plt.show()
 # Save FULL model
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
-model_dir = os.path.join(models_dir, f'model_{int(time())}.ckpt')
-model.save('my_model.h5')
-
+model_path = os.path.join(models_dir, f'categorizer_model_{int(time())}.h5')
+model.save(model_path)

@@ -66,6 +66,7 @@ def get_prediction(model, image):
 def write_statistics(account_path, statistics):
     statistics_percentage = map(lambda x: 100 * x / sum(statistics), statistics)
     with open(os.path.join(account_path, configs.INFO_FILENAME), 'w+') as f:
+        f.write(f'{configs.VK_URL}/id{os.path.basename(account_path)}\n')
         for name, statistic in zip(configs.CATEGORIZER_CLASSES, statistics_percentage):
             f.write(f'{name} - {statistic:.3f}%\n')
 
